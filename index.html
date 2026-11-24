@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Подай свою идею</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <!-- 2ГИС API -->
+  <script src="https://maps.api.2gis.ru/2.0/loader.js?pkg=full"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    html, body { 
+      width: 100%; 
+      height: 100%;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      overflow: hidden;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex; 
+      flex-direction: column; 
+      height: 100vh;
+    }
+    
+    header {
+      padding: 15px 20px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      position: relative; 
+      z-index: 10;
+      text-align: center;
+      border-bottom: 3px solid rgba(102, 126, 234, 0.2);
+      flex-shrink: 0;
+    }
+    
+    h2 { 
+      margin: 0; 
+      font-size: 1.3rem; 
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text; 
+      -webkit-text-fill-color: transparent;
+      background-clip: text; 
+    }
+    
+    .header-desc { 
+      margin: 6px auto 0; 
+      max-width: 900px; 
+      color: #555; 
+      font-size: 0.9rem; 
+      line-height: 1.4; 
+    }
+    
+    .legend { 
+      margin-top: 10px; 
+      font-size: 0.85rem; 
+      color: #444;
+      display: flex; 
+      justify-content: center; 
+      gap: 20px; 
+      flex-wrap: wrap;
+    }
+    
+    .legend-item {
+      display: flex; 
+      align-items: center; 
+      gap: 6px;
+      padding: 4px 10px; 
+      background: rgba(255, 255, 255, 0.7);
+      border-radius: 20px; 
+      font-weight: 500; 
+    }
+    
+    .dot { 
+      width: 12px; 
+      height: 12px; 
+      border-radius: 50%; 
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); 
+    }
+    .dot.green { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); }
+    .dot.blue { background: linear-gradient(135deg, #0056b3 0%, #007bff 100%); }
+
+    .filter-container {
+      display: flex; 
+      justify-content: center; 
+      gap: 8px;
+      margin-top: 12px; 
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(102, 126, 234, 0.3);
+      color: #333; 
+      padding: 5px 14px; 
+      border-radius: 20px;
+      cursor: pointer; 
+      font-weight: 600; 
+      font-size: 0.85rem;
+      transition: all 0.3s ease;
+    }
+    .filter-btn:hover {
+      background: rgba(255, 255, 255, 0.95); 
+    }
+    .filter-btn.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; 
+      border-color: transparent;
+    }
+
+    /* ВАЖНО: Явная высота для Google Sites */
+    #map { 
+      flex: 1; 
+      width: 100%; 
+      min-height: 400px; 
+      height: calc(100vh - 200px);
+      box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.1); 
+    }
+
+    #btn-geoloc {
+      position: absolute; 
+      bottom: 20px; 
+      right: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; 
+      border: none; 
+      border-radius: 50%;
+      width: 55px; 
+      height: 55px; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center;
+      cursor: pointer; 
+      box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+      z-index: 20; 
+      font-size: 1.4rem; 
+      transition: all 0.3s ease;
+    }
+    #btn-geoloc:hover { 
+      transform: translateY(-4px) scale(1.05); 
+    }
+
+    .balloon-content { 
+      padding: 8px; 
+      font-size: 0.9rem; 
+      line-height: 1.5; 
+      font-family: 'Inter', sans-serif;
+    }
+    .coord-display {
+      background: linear-gradient(135deg, #f0f8ff 0%, #e6f2ff 100%);
+      padding: 10px; 
+      border-radius: 8px; 
+      color: #0056b3;
+      font-size: 0.95rem; 
+      border: 2px solid #cce5ff;
+      margin: 8px 0; 
+      font-weight: 700; 
+      text-align: center; 
+      user-select: all;
+    }
+    .btn-pkk, .btn-open-form {
+      display: block; 
+      width: 100%; 
+      text-align: center; 
+      color: white;
+      text-decoration: none; 
+      padding: 11px 0; 
+      border-radius: 8px;
+      font-weight: 600; 
+      margin-top: 8px; 
+      font-size: 0.9rem;
+      transition: all 0.3s ease; 
+      border: none; 
+      cursor: pointer; 
+      font-family: inherit;
+    }
+    .btn-pkk { 
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%); 
+    }
+    .btn-open-form { 
+      background: linear-gradient(135deg, #0056b3 0%, #007bff 100%); 
+    }
+    .hint { 
+      font-size: 0.8rem; 
+      color: #666; 
+      margin-top: 6px; 
+      line-height: 1.3; 
+      font-style: italic; 
+    }
+
+    .project-badge {
+      display: inline-block; 
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+      color: white; 
+      padding: 3px 10px; 
+      border-radius: 16px;
+      font-size: 0.75rem; 
+      font-weight: 700; 
+      margin-bottom: 6px;
+      text-transform: uppercase; 
+    }
+    .project-title { 
+      font-weight: 700; 
+      font-size: 1rem; 
+      margin: 4px 0 6px; 
+      color: #2c3e50; 
+    }
+    .project-row { 
+      margin: 5px 0; 
+      color: #555; 
+      line-height: 1.4; 
+    }
+    .project-year { 
+      color: #888; 
+      font-style: italic; 
+      font-size: 0.85rem; 
+      margin-top: 6px; 
+      padding-top: 6px; 
+      border-top: 1px solid #eee; 
+    }
+    .project-image {
+      width: 100%; 
+      max-height: 180px; 
+      object-fit: cover; 
+      border-radius: 8px;
+      margin-bottom: 8px; 
+      border: 2px solid #e0e0e0; 
+    }
+
+    #a11y-toggle {
+      position: absolute; 
+      top: 10px; 
+      right: 10px;
+      background: rgba(255, 255, 255, 0.9); 
+      border: 2px solid rgba(102, 126, 234, 0.3); 
+      border-radius: 20px;
+      padding: 6px 12px; 
+      font-size: 0.8rem; 
+      font-weight: 600;
+      cursor: pointer; 
+      z-index: 15; 
+    }
+
+    /* Версия для слабовидящих */
+    body.a11y-active { background: #fff !important; }
+    body.a11y-active header { background: #fff !important; border-bottom: 3px solid #000 !important; }
+    body.a11y-active h2 { font-size: 1.5rem !important; color: #000 !important; -webkit-text-fill-color: #000 !important; }
+    body.a11y-active .header-desc, body.a11y-active .legend { font-size: 1rem !important; color: #000 !important; }
+    body.a11y-active .balloon-content { font-size: 1.1rem !important; }
+    body.a11y-active .coord-display { font-size: 1.2rem !important; border: 3px solid #000 !important; }
+    body.a11y-active .btn-pkk, body.a11y-active .btn-open-form { font-size: 1.1rem !important; padding: 14px 0 !important; border: 3px solid #000 !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <button id="a11y-toggle" aria-label="Версия для слабовидящих">👁️ Для слабовидящих</button>
+    <h2>🗺️ Подай свою идею</h2>
+    <p class="header-desc">
+      Введите адрес в поиске, кликните по карте или нажмите «📍»
+    </p>
+    <div class="legend">
+      <div class="legend-item">
+        <i class="dot green"></i>
+        <span>Реализовано: <b id="projects-count">0</b></span>
+      </div>
+      <div class="legend-item">
+        <i class="dot blue"></i>
+        <span>Ваша идея</span>
+      </div>
+    </div>
+    <div class="filter-container" id="year-filters"></div>
+  </header>
+
+  <div id="map"></div>
+  <button id="btn-geoloc" title="Моё местоположение">📍</button>
+
+  <script type="text/javascript">
+    const SHEET_ID = "1eUqsRNZW4T34RQu3EtpU4DDS6SY36OIJKNLrRygCRdM";
+    const FORM_URL = "https://forms.yandex.ru/cloud/6af7440690290289b69a0068";
+
+    window.copyAndOpen = function(url, text, btnElement) {
+      navigator.clipboard.writeText(text).then(() => {
+        const originalText = btnElement.textContent;
+        btnElement.textContent = '✅ Скопировано!';
+        btnElement.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
+        setTimeout(() => {
+          window.open(url, '_blank');
+          btnElement.textContent = originalText;
+          btnElement.style.background = 'linear-gradient(135deg, #0056b3 0%, #007bff 100%)';
+        }, 600);
+      }).catch(err => {
+        window.open(url, '_blank');
+      });
+    };
+
+    let a11yMode = parseInt(localStorage.getItem('a11y-mode')) || 0;
+    const a11yBtn = document.getElementById('a11y-toggle');
+    
+    function applyA11y() {
+      document.body.classList.remove('a11y-active');
+      if (a11yMode === 0) {
+        a11yBtn.innerHTML = '👁️ Для слабовидящих';
+        localStorage.removeItem('a11y-mode');
+      } else {
+        document.body.classList.add('a11y-active');
+        if (a11yMode === 1) a11yBtn.innerHTML = '⚫ Ч/Б';
+        if (a11yMode === 2) a11yBtn.innerHTML = '⚪ Б/Ч';
+        if (a11yMode === 3) a11yBtn.innerHTML = '🔵 С/Б';
+        localStorage.setItem('a11y-mode', a11yMode);
+      }
+    }
+    a11yBtn.addEventListener('click', () => { a11yMode = (a11yMode + 1) % 4; applyA11y(); });
+    applyA11y();
+
+    let myMap, myPlacemark;
+    let projectClickTime = 0;
+    let ALL_PROJECTS = [];
+    let projectMarkers = [];
+
+    function getBalloonHtml(lat, lng) {
+      const coordsString = `${lat}, ${lng}`;
+      return `
+        <div class="balloon-content">
+          <p style="margin-top:0;font-weight:bold;">📍 Место выбрано</p>
+          <div class="coord-display">${coordsString}</div>
+          <a href="https://pkk.rosreestr.ru/" target="_blank" class="btn-pkk">🔍 Кадастровый номер</a>
+          <p class="hint">Вставьте координаты в ПКК, узнайте номер участка.</p>
+          <button onclick="copyAndOpen('${FORM_URL}', '${coordsString}', this)" class="btn-open-form">✨ Скопировать и открыть форму</button>
+        </div>`;
+    }
+
+    function getProjectHtml(p) {
+      let imageHtml = '';
+      if (p.image) {
+        imageHtml = `<img src="${p.image}" alt="${p.title}" class="project-image" onerror="this.style.display='none'">`;
+      }
+      return `
+        <div class="balloon-content">
+          ${imageHtml}
+          <span class="project-badge">✅ Реализовано</span>
+          <div class="project-title">${p.title}</div>
+          <div class="project-row">📍 <strong>${p.location}</strong></div>
+          <div class="project-row">${p.description}</div>
+          <div class="project-year">📅 ${p.year} · ППМИ</div>
+        </div>`;
+    }
+
+    function openIdeaForm(lat, lng) {
+      if (myPlacemark) myMap.removeLayer(myPlacemark);
+      myPlacemark = DG.marker([lat, lng]).addTo(myMap);
+      myPlacemark.bindPopup(getBalloonHtml(lat.toFixed(6), lng.toFixed(6)), {
+        maxWidth: 320
+      }).openPopup();
+    }
+
+    function applyFilter(selectedYear, clickedBtn) {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      if (clickedBtn) clickedBtn.classList.add('active');
+      else {
+        const firstBtn = document.querySelector('.filter-btn');
+        if (firstBtn) firstBtn.classList.add('active');
+      }
+
+      projectMarkers.forEach(m => myMap.removeLayer(m));
+      projectMarkers = [];
+
+      const filteredProjects = selectedYear === 'Все' 
+        ? ALL_PROJECTS 
+        : ALL_PROJECTS.filter(p => String(p.year) === String(selectedYear));
+
+      document.getElementById('projects-count').textContent = `${filteredProjects.length} из ${ALL_PROJECTS.length}`;
+
+      filteredProjects.forEach(function (p) {
+        const mark = DG.marker([p.lat, p.lng]).addTo(myMap);
+        mark.bindPopup(getProjectHtml(p), { maxWidth: 320 });
+        mark.on('click', function () { projectClickTime = Date.now(); });
+        projectMarkers.push(mark);
+      });
+    }
+
+    function renderFilters(projects) {
+      const container = document.getElementById('year-filters');
+      container.innerHTML = '';
+      const uniqueYears = [...new Set(projects.map(p => p.year).filter(Boolean))].sort((a, b) => b - a);
+      const yearsToDisplay = ['Все', ...uniqueYears];
+
+      yearsToDisplay.forEach(year => {
+        const btn = document.createElement('button');
+        btn.className = `filter-btn ${year === 'Все' ? 'active' : ''}`;
+        btn.textContent = year === 'Все' ? 'Все годы' : year;
+        btn.onclick = () => applyFilter(year, btn);
+        container.appendChild(btn);
+      });
+    }
+
+    function loadProjects() {
+      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+      fetch(url)
+        .then(r => r.ok ? r.text() : Promise.reject('HTTP ' + r.status))
+        .then(text => {
+          try {
+            const json = JSON.parse(text.substr(47).slice(0, -2));
+            ALL_PROJECTS = json.table.rows.map(row => ({
+              title:       row.c[0] ? row.c[0].v : '',
+              location:    row.c[1] ? row.c[1].v : '',
+              description: row.c[2] ? row.c[2].v : '',
+              year:        row.c[3] ? String(row.c[3].v).trim() : '',
+              lat:         row.c[4] ? parseFloat(row.c[4].v) : 0,
+              lng:         row.c[5] ? parseFloat(row.c[5].v) : 0,
+              image:       row.c[6] ? row.c[6].v : ''
+            })).filter(p => p.lat && p.lng && p.title);
+
+            renderFilters(ALL_PROJECTS);
+            applyFilter('Все');
+          } catch (e) {
+            console.error('Parse error:', e);
+          }
+        })
+        .catch(err => console.error('Load error:', err));
+    }
+
+    // Инициализация 2ГИС
+    DG.then(function () {
+      myMap = DG.map('map', {
+        center: [56.2686, 90.4953],
+        zoom: 13
+      });
+
+      const searchControl = DG.control.search({
+        placeholder: 'Введите адрес...'
+      }).addTo(myMap);
+
+      searchControl.on('select', function (e) {
+        const lat = e.point.lat;
+        const lng = e.point.lng;
+        openIdeaForm(lat, lng);
+        myMap.setView([lat, lng], 16);
+      });
+
+      myMap.on('click', function (e) {
+        if (Date.now() - projectClickTime < 400) return;
+        openIdeaForm(e.latlng.lat, e.latlng.lng);
+      });
+
+      loadProjects();
+    });
+
+    document.getElementById('btn-geoloc').addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        alert('Геолокация не поддерживается');
+        return;
+      }
+      const btn = document.getElementById('btn-geoloc');
+      btn.innerHTML = '⏳';
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          myMap.setView([lat, lng], 16);
+          openIdeaForm(lat, lng);
+          btn.innerHTML = '📍';
+        },
+        () => {
+          alert('Не удалось определить местоположение');
+          btn.innerHTML = '📍';
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    });
+  </script>
+</body>
+</html>
